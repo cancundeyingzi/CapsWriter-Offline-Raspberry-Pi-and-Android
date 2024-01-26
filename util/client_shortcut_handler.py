@@ -9,13 +9,13 @@ from concurrent.futures import ThreadPoolExecutor
 from util.client_send_audio import send_audio
 from util.my_status import Status
 
-
 task = asyncio.Future()
 status = Status('开始录音', spinner='point')
 pool = ThreadPoolExecutor()
 pressed = False
 released = True
 event = Event()
+T2=time.time()#记录录音结束时间,详细见下面
 
 
 def shortcut_correct(e: keyboard.KeyboardEvent):
@@ -65,17 +65,23 @@ def cancel_task():
 
 
 def finish_task():
-    global task
+    global task,T2
 
     # 通知停止录音，关掉滚动条
     Cosmic.on = False
     status.stop()
 
     # 通知结束任务
+    if time.time()-T2<1:
+        print(time.time(),T2,"拒绝执行结束任务")
+        T2 = time.time()
+        return
+    print(time.time(),T2,"可以执行结束任务")
+    T2 = time.time()
     asyncio.run_coroutine_threadsafe(
         Cosmic.queue_in.put(
             {'type': 'finish',
-             'time': time.time(),
+             'time': T2,
              'data': None
              },
         ),
@@ -101,18 +107,19 @@ def manage_task(e: Event):
     # 记录是否有任务
     on = Cosmic.on
 
-    # 先运行任务
+    # print("先运行任务")
     if not on:
         launch_task()
 
     # 及时松开按键了，是单击
     if e.wait(timeout=Config.threshold * 0.8):
-        # 如果有任务在运行，就结束任务
+        # print("如果有任务在运行，就结束任务")
         if Cosmic.on and on:
             finish_task()
 
-    # 没有及时松开按键，是长按
+
     else:
+        # print("没有及时松开按键，是长按")
         # 就取消本栈启动的任务
         if not on:
             cancel_task()
@@ -135,14 +142,13 @@ def click_mode(e: keyboard.KeyboardEvent):
         event.set()
 
 
-
 # ======================长按模式==================================
 
 
 def hold_mode(e: keyboard.KeyboardEvent):
     """像对讲机一样，按下录音，松开停止"""
     global task
-
+    print("e.event_type", e.event_type)
     if e.event_type == 'down' and not Cosmic.on:
         # 记录开始时间
         launch_task()
@@ -162,14 +168,10 @@ def hold_mode(e: keyboard.KeyboardEvent):
                 keyboard.send(Config.shortcut)
 
 
-
-
-
 # ==================== 绑定 handler ===============================
 
 
 def hold_handler(e: keyboard.KeyboardEvent) -> None:
-
     # 验证按键名正确
     if not shortcut_correct(e):
         return
@@ -179,7 +181,6 @@ def hold_handler(e: keyboard.KeyboardEvent) -> None:
 
 
 def click_handler(e: keyboard.KeyboardEvent) -> None:
-
     # 验证按键名正确
     if not shortcut_correct(e):
         return
