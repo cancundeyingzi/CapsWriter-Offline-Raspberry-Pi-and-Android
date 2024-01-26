@@ -9,3 +9,8 @@
 
 
 改动的地方:
+
+1client_shortcut_handler.py:重点,防止反复结束任务就是在这里改的
+
+
+client_recv_result.py:去掉了打字操作,要的自己再加
