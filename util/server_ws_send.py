@@ -1,7 +1,9 @@
-import json 
-import base64 
+import json
+import base64
 import asyncio
 from multiprocessing import Queue
+from datetime import datetime
+import requests
 
 from util.server_cosmic import console, Cosmic
 from util.server_classes import Result
@@ -9,8 +11,21 @@ from util.asyncio_to_thread import to_thread
 from rich import inspect
 
 
-async def ws_send():
+def sendrequest(title, message):
+    try:
+        url = "http://127.0.0.1:1234/message?token=AJnf-TyO0I8L6_C"
+        data = {
+            "title": title,
+            "message": message,
+            "priority": "3"  # 8+,4-7,1-3,0,,,一共四个等级
+        }
+        proxies = {"http": None, "https": None}  # proxies代理给他关了
+        response = requests.post(url=url, proxies=proxies, data=data)
+    except:
+        sendrequest(title, message)
 
+
+async def ws_send():
     queue_out = Cosmic.queue_out
     sockets = Cosmic.sockets
 
@@ -49,7 +64,9 @@ async def ws_send():
             await websocket.send(json.dumps(message))
 
             if result.source == 'mic':
-                console.print(f'识别结果：\n    [green]{result.text}')
+                print(datetime.now().strftime("%H时%M分%S秒,"), end="")
+                console.print(f'某不知名生物：\n    [green]{result.text}')
+                sendrequest("某不知名生物消息", result.text)
             elif result.source == 'file':
                 console.print(f'    转录进度：{result.duration:.2f}s', end='\r')
                 if result.is_final:
@@ -57,5 +74,3 @@ async def ws_send():
 
         except Exception as e:
             print(e)
-
-

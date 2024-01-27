@@ -1,17 +1,41 @@
 import json 
-import time
 import base64 
 import asyncio
 import websockets
 from base64 import b64decode
-
+import requests
 from util.server_cosmic import console, Cosmic
 from util.server_classes import Task, Result
 from util.my_status import Status
 
 status_mic = Status('正在接收音频', spinner='point')
 
+def downrequest():
+    try:
+        url = "http://127.0.0.1:1234/message?token=AJnf-TyO0I8L6_C"
+        data = {
+            "title": "某不知名生物寄了!!!!.....",
+            "message": "快救一救,救一救啊(录音客户端掉线)",
+            "priority": "9"  # 8+,4-7,1-3,0,,,一共四个等级
+        }
+        proxies = {"http": None, "https": None}  # proxies代理给他关了
+        response = requests.post(url=url, proxies=proxies, data=data)
+    except:
+        downrequest()
 
+
+def uprequest():
+    try:
+        url = "http://127.0.0.1:1234/message?token=AJnf-TyO0I8L6_C"
+        data = {
+            "title": "某不知名生物上线了.....",
+            "message": "快来和它....",
+            "priority": "6"  # 8+,4-7,1-3,0,,,一共四个等级
+        }
+        proxies = {"http": None, "https": None}  # proxies代理给他关了
+        response = requests.post(url=url, proxies=proxies, data=data)
+    except:
+        uprequest()
 class Cache:
     # 定义一个可变对象，用于保存音频数据、偏移时间
     def __init__(self):
@@ -62,7 +86,7 @@ async def message_handler(websocket, message, cache: Cache):
                         task_id=task_id, socket_id=socket_id,
                         overlap=seg_overlap, is_final=False,
                         time_start=message['time_start'],
-                        time_submit=time.time())
+                        time_submit=message['time_frame'])
             cache.offset += seg_duration
             queue_in.put(task)
 
@@ -79,7 +103,7 @@ async def message_handler(websocket, message, cache: Cache):
                     task_id=task_id, socket_id=socket_id,
                     overlap=seg_overlap, is_final=True,
                     time_start=message['time_start'],
-                    time_submit=time.time())
+                    time_submit=message['time_frame'])
         queue_in.put(task)
 
         # 还原缓冲区、偏移时长
@@ -96,7 +120,8 @@ async def ws_recv(websocket):
     sockets_id = Cosmic.sockets_id
     sockets[str(websocket.id)] = websocket
     sockets_id.append(str(websocket.id))
-    console.print(f'接客了：{websocket}\n', style='yellow')
+    console.print(f'某生物上线了：{websocket}\n', style='yellow')
+    uprequest()
 
     # 设定分段长度
     seg_duration = 15
@@ -118,9 +143,10 @@ async def ws_recv(websocket):
 
         console.print("ConnectionClosed...", )
     except websockets.ConnectionClosed:
-        console.print("ConnectionClosed...", )
+        console.print("某生物寄了...",style='red')
+        downrequest()
     except websockets.InvalidState:
-        console.print("InvalidState...")
+        console.print("无效...")
     except Exception as e:
         console.print("Exception:", e)
     finally:

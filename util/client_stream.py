@@ -1,3 +1,4 @@
+import os
 
 from util.client_cosmic import console, Cosmic
 import numpy as np 
@@ -59,7 +60,13 @@ def stream_open():
         console.print("由于编码问题，暂时无法获得麦克风设备名字", end='\n\n', style='bright_red')
     except sd.PortAudioError:
         console.print("没有找到麦克风设备", end='\n\n', style='bright_red')
-        input('按回车键退出'); sys.exit()
+        print('程序重启...')
+        # 获取当前解释器路径 改了这里
+        p = sys.executable
+        # 启动新程序(解释器路径, 当前程序)
+        os.execl(p, p, *sys.argv)
+        # 关闭当前程序
+        sys.exit()
 
     stream = sd.InputStream(
         samplerate=48000,

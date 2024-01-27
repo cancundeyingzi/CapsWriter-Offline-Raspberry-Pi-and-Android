@@ -15,7 +15,6 @@ pool = ThreadPoolExecutor()
 pressed = False
 released = True
 event = Event()
-T2=time.time()#记录录音结束时间,详细见下面
 
 
 def shortcut_correct(e: keyboard.KeyboardEvent):
@@ -37,6 +36,7 @@ def launch_task():
     t1 = time.time()
 
     # 将开始标志放入队列
+    print("开始放入begin",t1)
     asyncio.run_coroutine_threadsafe(
         Cosmic.queue_in.put({'type': 'begin', 'time': t1, 'data': None}),
         Cosmic.loop
@@ -65,23 +65,19 @@ def cancel_task():
 
 
 def finish_task():
-    global task,T2
+    global task
 
     # 通知停止录音，关掉滚动条
     Cosmic.on = False
     status.stop()
 
     # 通知结束任务
-    if time.time()-T2<1:
-        print(time.time(),T2,"拒绝执行结束任务")
-        T2 = time.time()
-        return
-    print(time.time(),T2,"可以执行结束任务")
-    T2 = time.time()
+    T1 = time.time()
+    print("开始放入 finish",T1)
     asyncio.run_coroutine_threadsafe(
         Cosmic.queue_in.put(
             {'type': 'finish',
-             'time': T2,
+             'time': T1,
              'data': None
              },
         ),
@@ -113,13 +109,13 @@ def manage_task(e: Event):
 
     # 及时松开按键了，是单击
     if e.wait(timeout=Config.threshold * 0.8):
-        # print("如果有任务在运行，就结束任务")
+        #print("如果有任务在运行，就结束任务")
         if Cosmic.on and on:
             finish_task()
 
 
     else:
-        # print("没有及时松开按键，是长按")
+        #print("没有及时松开按键，是长按")
         # 就取消本栈启动的任务
         if not on:
             cancel_task()
@@ -148,15 +144,15 @@ def click_mode(e: keyboard.KeyboardEvent):
 def hold_mode(e: keyboard.KeyboardEvent):
     """像对讲机一样，按下录音，松开停止"""
     global task
-    print("e.event_type", e.event_type)
+    #print("e.event_type", e.event_type)
     if e.event_type == 'down' and not Cosmic.on:
         # 记录开始时间
         launch_task()
     elif e.event_type == 'up':
-        # 记录持续时间，并标识录音线程停止向队列放数据
+        #print("记录持续时间，并标识录音线程停止向队列放数据")
         duration = time.time() - Cosmic.on
 
-        # 取消或停止任务
+        #print("取消或停止任务")
         if duration < Config.threshold:
             cancel_task()
         else:

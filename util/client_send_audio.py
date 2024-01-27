@@ -1,4 +1,5 @@
 import asyncio
+import time
 
 from util.client_cosmic import Cosmic, console
 from config import ClientConfig as Config
@@ -9,12 +10,12 @@ import websockets
 from util.client_create_file import create_file
 from util.client_write_file import write_file
 from util.client_finish_file import finish_file
+from util.client_stream import stream_reopen,stream_close #新加
 import uuid
 
 
 
 async def send_message(message):
-    # 发送数据
     if Cosmic.websocket is None or Cosmic.websocket.closed:
         if message['is_final']:
             Cosmic.audio_files.pop(message['task_id'])
@@ -26,56 +27,54 @@ async def send_message(message):
             if message['is_final']:
                 console.print(f'[red]连接中断了')
         except Exception as e:
-            print('出错了')
             print(e)
 
 
 async def send_audio():
     try:
 
-        # 生成唯一任务 ID
+        #print ("生成唯一任务 ID")
         task_id = str(uuid.uuid1())
 
-        # 任务起始时间
+        #print ("任务起始时间")
         time_start = 0
 
-        # 音频数据临时存放处
+        #print ("音频数据临时存放处")
         cache = []
         duration = 0
 
-        # 保存音频文件
+        #print ("保存音频文件")
         file_path, file = '', None
 
-        # 开始取数据
+        print ("开始取数据")
         # task: {'type', 'time', 'data'}
         while task := await Cosmic.queue_in.get():
             Cosmic.queue_in.task_done()
+            print("task['type']是!!!!!!!!!!!!!!!!!!!!!",task['type'],task['time'])
             if task['type'] == 'begin':
                 time_start = task['time']
             elif task['type'] == 'data':
-                # 在阈值之前积攒音频数据
                 if task['time'] - time_start < Config.threshold:
                     cache.append(task['data'])
                     continue
 
-                # 创建音频文件
                 if Config.save_audio and not file_path:
                     file_path, file = create_file(task['data'].shape[1], time_start)
                     Cosmic.audio_files[task_id] = file_path
 
-                # 获取音频数据
+                # print ("获取音频数据")
                 if cache:
                     data = np.concatenate(cache)
                     cache.clear()
                 else:
                     data = task['data']
 
-                # 保存音频至本地文件
                 duration += len(data) / 48000
+                print (duration,"录音时长duration")
                 if Config.save_audio:
                     write_file(file, data)
 
-                # 发送音频数据用于识别
+                #print ("发送音频数据用于识别")
                 message = {
                     'task_id': task_id,             # 任务 ID
                     'seg_duration': Config.mic_seg_duration,    # 分段长度
@@ -90,14 +89,17 @@ async def send_audio():
                 }
                 task = asyncio.create_task(send_message(message))
             elif task['type'] ==  'finish':
-                # 完成写入本地文件
+                #print ("完成写入本地文件")
                 if Config.save_audio:
                     finish_file(file)
 
                 console.print(f'任务标识：{task_id}')
                 console.print(f'    录音时长：{duration:.2f}s')
+                if duration==0:
+                    stream_close(1,2)
+                    print("出错尝试重启")
 
-                # 告诉服务端音频片段结束了
+                #print ("告诉服务端音频片段结束了")
                 message = {
                     'task_id': task_id,
                     'seg_duration': 15,
@@ -112,3 +114,4 @@ async def send_audio():
                 break
     except Exception as e:
         print(e)
+        #print("出问题")
