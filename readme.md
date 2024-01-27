@@ -8,8 +8,13 @@
 
 1client_shortcut_handler.py:重点,防止反复结束任务就是在这里改
 
-client_recv_result.py:去掉了打字操作,要的自己再加
+2client_recv_result.py:去掉了打字操作,要的自己再加
 
+3client_stream.py:找不到麦克风重启程
+
+4client_send_audio.py:录音录到零秒的时候，尝试重启音频流.代价是刚才那一音频就没有了.修复方法未知
+
+1server_ws_recv.py和server_ws_send.py:服务端添加 web hook
 
 
 附带gotifi调用方法
