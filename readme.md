@@ -10,7 +10,7 @@
 
 2client_recv_result.py:去掉了打字操作,要的自己再加
 
-3client_stream.py:找不到麦克风重启程
+3client_stream.py:找不到麦克风重启进程
 
 4client_send_audio.py:录音录到零秒的时候，尝试重启音频流.代价是刚才那一音频就没有了.修复方法未知
 
