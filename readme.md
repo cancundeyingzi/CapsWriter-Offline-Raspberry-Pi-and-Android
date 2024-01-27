@@ -37,4 +37,4 @@ proxies = {"http": None, "https": None}  # proxies代理给他关了
 response = requests.post(url=url, proxies=proxies, json=data)
 print(response.text)
 
-``
+```
